@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+youtube_videos/
+*.mp4
+*.avi
+
+# Streamlit
+.streamlit/
+
+# Model files (optional - uncomment if model is too large for GitHub)
+# *.joblib
+# *.pkl
+
+# Data files (optional - uncomment if datasets are too large)
+# *.csv
