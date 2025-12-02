@@ -6,4 +6,3 @@ pandas==2.2.3
 scikit-learn==1.5.2
 joblib==1.4.2
 pillow==10.4.0
-protobuf==3.20.3
