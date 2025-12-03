@@ -77,8 +77,9 @@ def init_mediapipe():
     hands = mp_hands.Hands(
         static_image_mode=False,
         max_num_hands=1,
-        min_detection_confidence=0.6,
-        min_tracking_confidence=0.6
+        min_detection_confidence=0.3,
+        min_tracking_confidence=0.3,
+        model_complexity=0
     )
     return hands, mp_hands
 
@@ -178,11 +179,15 @@ def main():
     # Camera feed
     if run:
         cap = cv2.VideoCapture(0)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        cap.set(cv2.CAP_PROP_FPS, 30)
         
         if not cap.isOpened():
             st.error("❌ Cannot access camera!")
             st.stop()
         
+        frame_skip = 0
         while run:
             ret, frame = cap.read()
             if not ret:
@@ -191,6 +196,14 @@ def main():
             
             st.session_state.frame_count += 1
             frame = cv2.flip(frame, 1)
+            
+            # Process every 3rd frame for better performance
+            frame_skip += 1
+            if frame_skip % 3 != 0:
+                FRAME_WINDOW.image(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), channels="RGB", use_container_width=False)
+                time.sleep(0.01)  # Small delay to reduce CPU usage
+                continue
+            
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             results = hands.process(rgb)
             
@@ -238,12 +251,13 @@ def main():
                           cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
             
             # Display sentence on frame
-            cv2.putText(frame, f"Sentence: {st.session_state.sentence}", (10, frame.shape[0]-20), 
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
+            if st.session_state.sentence:
+                cv2.putText(frame, f"Sentence: {st.session_state.sentence[:30]}", (10, frame.shape[0]-20), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2)
             
             # Update display
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            FRAME_WINDOW.image(rgb_frame, channels="RGB")
+            FRAME_WINDOW.image(rgb_frame, channels="RGB", use_container_width=False)
             
             # Update predictions
             if current_pred:
