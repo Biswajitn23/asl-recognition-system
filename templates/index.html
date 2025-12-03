@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ASL Recognition System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .video-container {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        img {
+            max-width: 100%;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .sentence-box {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 25px;
+            border-radius: 15px;
+            color: white;
+            font-size: 1.5rem;
+            margin: 20px 0;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1rem;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 20px rgba(0,0,0,0.3);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .info {
+            background: #f0f0f0;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        .info h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .info ul {
+            list-style-position: inside;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>👋 ASL Recognition System</h1>
+        <p class="subtitle">Real-time American Sign Language Detection</p>
+        
+        <div class="video-container">
+            <img src="{{ url_for('video_feed') }}" alt="Video Feed">
+        </div>
+        
+        <div class="sentence-box" id="sentence">
+            Start signing...
+        </div>
+        
+        <div class="controls">
+            <button onclick="clearSentence()">🗑️ Clear Text</button>
+            <button onclick="copySentence()">📋 Copy Text</button>
+        </div>
+        
+        <div class="info">
+            <h3>📖 How to Use:</h3>
+            <ul>
+                <li>Allow camera access when prompted</li>
+                <li>Show ASL signs to the camera</li>
+                <li>Hold each sign steady for 1-2 seconds</li>
+                <li>Recognized signs will appear in the text box</li>
+                <li>Click "Clear Text" to start over</li>
+            </ul>
+        </div>
+    </div>
+    
+    <script>
+        function updateSentence() {
+            fetch('/get_sentence')
+                .then(response => response.json())
+                .then(data => {
+                    const sentenceBox = document.getElementById('sentence');
+                    sentenceBox.textContent = data.sentence || 'Start signing...';
+                });
+        }
+        
+        function clearSentence() {
+            fetch('/clear_sentence', {method: 'POST'})
+                .then(() => updateSentence());
+        }
+        
+        function copySentence() {
+            fetch('/get_sentence')
+                .then(response => response.json())
+                .then(data => {
+                    navigator.clipboard.writeText(data.sentence);
+                    alert('Text copied to clipboard!');
+                });
+        }
+        
+        // Update sentence every second
+        setInterval(updateSentence, 1000);
+    </script>
+</body>
+</html>
