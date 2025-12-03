@@ -4,7 +4,6 @@ Real-time American Sign Language recognition using AI and computer vision. Recog
 
 ![ASL Recognition](https://img.shields.io/badge/ASL%20Signs-150-blue)
 ![Python](https://img.shields.io/badge/Python-3.8+-green)
-![License](https://img.shields.io/badge/License-MIT-yellow)
 
 ## 🚀 Quick Start
 
