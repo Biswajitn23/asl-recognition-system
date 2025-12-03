@@ -114,8 +114,8 @@ def main():
     with st.sidebar:
         st.header("⚙️ Settings")
         confidence_thresh = st.slider("Confidence Threshold", 0.0, 1.0, 0.5, 0.05)
-        smoothing_window = st.slider("Smoothing Window", 5, 20, 12)
-        stable_count = st.slider("Stable Count", 3, 15, 9)
+        smoothing_window = st.slider("Smoothing Window", 5, 20, 15)
+        stable_count = st.slider("Stable Count", 3, 15, 6)
         
         st.markdown("---")
         st.header("📊 Model Info")
@@ -233,18 +233,19 @@ def main():
                     if most_common is not None and count >= stable_count:
                         now = time.time()
                         if (st.session_state.last_spoken != most_common) or \
-                           (now - st.session_state.last_append_time > 0.9):
+                           (now - st.session_state.last_append_time > 1.2):
                             st.session_state.sentence += most_common + " "
                             st.session_state.last_spoken = most_common
                             st.session_state.last_append_time = now
                         
                         current_pred = most_common
+                        current_conf = conf
                         
                         # Draw on frame
                         cv2.putText(frame, f"Sign: {most_common}", (10, 30), 
-                                  cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-                        cv2.putText(frame, f"Confidence: {conf:.2%}", (10, 70), 
-                                  cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+                                  cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 3)
+                        cv2.putText(frame, f"Confidence: {current_conf:.1%}", (10, 70), 
+                                  cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
             else:
                 st.session_state.preds.append(None)
                 cv2.putText(frame, "No hand detected", (10, 30), 
