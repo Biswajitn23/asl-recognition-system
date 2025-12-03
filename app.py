@@ -113,9 +113,9 @@ def main():
     # Sidebar
     with st.sidebar:
         st.header("⚙️ Settings")
-        confidence_thresh = st.slider("Confidence Threshold", 0.0, 1.0, 0.5, 0.05)
-        smoothing_window = st.slider("Smoothing Window", 5, 20, 15)
-        stable_count = st.slider("Stable Count", 3, 15, 6)
+        confidence_thresh = st.slider("Confidence Threshold", 0.0, 1.0, 0.4, 0.05)
+        smoothing_window = st.slider("Smoothing Window", 5, 20, 10)
+        stable_count = st.slider("Stable Count", 2, 15, 4)
         
         st.markdown("---")
         st.header("📊 Model Info")
@@ -199,7 +199,9 @@ def main():
             
             # Process every 3rd frame for better performance
             frame_skip += 1
-            if frame_skip % 3 != 0:
+            process_frame = (frame_skip % 2 == 0)  # Changed to every 2nd frame
+            
+            if not process_frame:
                 FRAME_WINDOW.image(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), channels="RGB", use_container_width=False)
                 time.sleep(0.01)  # Small delay to reduce CPU usage
                 continue
@@ -227,16 +229,20 @@ def main():
                 else:
                     st.session_state.preds.append(None)
                 
-                # Smoothing
-                if len(st.session_state.preds) > 0:
-                    most_common, count = Counter(st.session_state.preds).most_common(1)[0]
+                # Smoothing and sentence building
+                if len(st.session_state.preds) >= stable_count:
+                    counter = Counter(st.session_state.preds)
+                    most_common, count = counter.most_common(1)[0]
+                    
                     if most_common is not None and count >= stable_count:
                         now = time.time()
+                        # Add to sentence if it's a new sign or enough time has passed
                         if (st.session_state.last_spoken != most_common) or \
-                           (now - st.session_state.last_append_time > 1.2):
+                           (now - st.session_state.last_append_time > 1.5):
                             st.session_state.sentence += most_common + " "
                             st.session_state.last_spoken = most_common
                             st.session_state.last_append_time = now
+                            st.session_state.preds.clear()  # Clear after adding
                         
                         current_pred = most_common
                         current_conf = conf
