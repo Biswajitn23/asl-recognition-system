@@ -113,21 +113,23 @@ def main():
     # Sidebar
     with st.sidebar:
         st.header("⚙️ Settings")
-        confidence_thresh = st.slider("Confidence Threshold", 0.0, 1.0, 0.4, 0.05)
-        smoothing_window = st.slider("Smoothing Window", 5, 20, 10)
-        stable_count = st.slider("Stable Count", 2, 15, 4)
+        confidence_thresh = st.slider("Confidence Threshold", 0.0, 1.0, 0.35, 0.05)
+        smoothing_window = st.slider("Smoothing Window", 5, 20, 8)
+        stable_count = st.slider("Stable Count", 2, 15, 3)
         
         st.markdown("---")
         st.header("📊 Model Info")
         st.info(f"**Trained Signs:** {len(le.classes_)}")
-        for sign in le.classes_:
-            st.write(f"• {sign}")
         
         st.markdown("---")
         st.header("📖 Instructions")
         st.write("""
         1. Allow camera access
         2. Show ASL signs to camera
+        3. Hold sign steady for 1 second
+        4. Remove hand briefly for SPACE
+        5. Words build automatically
+        """)
         3. System will recognize signs
         4. Build sentences with gestures
         """)
@@ -169,6 +171,10 @@ def main():
         st.session_state.last_append_time = 0
     if 'frame_count' not in st.session_state:
         st.session_state.frame_count = 0
+    if 'no_hand_frames' not in st.session_state:
+        st.session_state.no_hand_frames = 0
+    if 'space_added' not in st.session_state:
+        st.session_state.space_added = False
     
     # Clear button logic
     if clear_button:
@@ -213,6 +219,10 @@ def main():
             current_conf = 0.0
             
             if results.multi_hand_landmarks:
+                # Reset no hand counter
+                st.session_state.no_hand_frames = 0
+                st.session_state.space_added = False
+                
                 hand = results.multi_hand_landmarks[0]
                 mp_draw.draw_landmarks(frame, hand, mp_hands.HAND_CONNECTIONS)
                 
@@ -238,7 +248,7 @@ def main():
                         now = time.time()
                         # Add to sentence if it's a new sign or enough time has passed
                         if (st.session_state.last_spoken != most_common) or \
-                           (now - st.session_state.last_append_time > 1.5):
+                           (now - st.session_state.last_append_time > 1.0):
                             st.session_state.sentence += most_common + " "
                             st.session_state.last_spoken = most_common
                             st.session_state.last_append_time = now
@@ -253,9 +263,20 @@ def main():
                         cv2.putText(frame, f"Confidence: {current_conf:.1%}", (10, 70), 
                                   cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
             else:
+                # No hand detected - count frames for space insertion
+                st.session_state.no_hand_frames += 1
                 st.session_state.preds.append(None)
-                cv2.putText(frame, "No hand detected", (10, 30), 
-                          cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                
+                # Add space after word if hand removed for 10+ frames (about 0.5 seconds)
+                if st.session_state.no_hand_frames >= 10 and not st.session_state.space_added:
+                    if st.session_state.sentence and not st.session_state.sentence.endswith("  "):
+                        # Add visual separator
+                        st.session_state.sentence += " "
+                        st.session_state.space_added = True
+                        st.session_state.last_spoken = None  # Reset to allow same sign again
+                
+                cv2.putText(frame, "No hand - SPACE added after 0.5s", (10, 30), 
+                          cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 165, 255), 2)
             
             # Display sentence on frame
             if st.session_state.sentence:

@@ -32,9 +32,11 @@ mp_draw = mp.solutions.drawing_utils
 
 # Global variables
 sentence = ""
-preds = deque(maxlen=10)
+preds = deque(maxlen=8)
 last_spoken = None
 last_append_time = 0
+no_hand_frames = 0
+space_added = False
 
 def preprocess_landmarks(hand_landmarks):
     lm = []
@@ -50,7 +52,7 @@ def preprocess_landmarks(hand_landmarks):
     return lm.flatten()
 
 def generate_frames():
-    global sentence, preds, last_spoken, last_append_time
+    global sentence, preds, last_spoken, last_append_time, no_hand_frames, space_added
     
     camera = cv2.VideoCapture(0)
     camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
@@ -71,6 +73,10 @@ def generate_frames():
             results = hands.process(rgb)
             
             if results.multi_hand_landmarks:
+                # Reset no hand counter
+                no_hand_frames = 0
+                space_added = False
+                
                 hand = results.multi_hand_landmarks[0]
                 mp_draw.draw_landmarks(frame, hand, mp_hands.HAND_CONNECTIONS)
                 
@@ -80,16 +86,16 @@ def generate_frames():
                 conf = probs[pred_idx]
                 pred_label = le.inverse_transform([pred_idx])[0]
                 
-                if conf >= 0.4:
+                if conf >= 0.35:
                     preds.append(pred_label)
                     
-                    if len(preds) >= 4:
+                    if len(preds) >= 3:
                         counter = Counter(preds)
                         most_common, count = counter.most_common(1)[0]
                         
-                        if most_common is not None and count >= 4:
+                        if most_common is not None and count >= 3:
                             now = time.time()
-                            if (last_spoken != most_common) or (now - last_append_time > 1.5):
+                            if (last_spoken != most_common) or (now - last_append_time > 1.0):
                                 sentence += most_common + " "
                                 last_spoken = most_common
                                 last_append_time = now
@@ -100,8 +106,18 @@ def generate_frames():
                             cv2.putText(frame, f"Conf: {conf:.1%}", (10, 70), 
                                       cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
             else:
-                cv2.putText(frame, "No hand detected", (10, 30), 
-                          cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                # No hand detected - count frames for space insertion
+                no_hand_frames += 1
+                
+                # Add space after word if hand removed for 10+ frames
+                if no_hand_frames >= 10 and not space_added:
+                    if sentence and not sentence.endswith("  "):
+                        sentence += " "
+                        space_added = True
+                        last_spoken = None
+                
+                cv2.putText(frame, "No hand - SPACE after 0.5s", (10, 30), 
+                          cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 165, 255), 2)
         
         if sentence:
             cv2.putText(frame, f"Text: {sentence[:30]}", (10, frame.shape[0]-20), 
@@ -127,10 +143,12 @@ def get_sentence():
 
 @app.route('/clear_sentence', methods=['POST'])
 def clear_sentence():
-    global sentence, preds, last_spoken
+    global sentence, preds, last_spoken, no_hand_frames, space_added
     sentence = ""
     preds.clear()
     last_spoken = None
+    no_hand_frames = 0
+    space_added = False
     return jsonify({'status': 'cleared'})
 
 if __name__ == '__main__':
