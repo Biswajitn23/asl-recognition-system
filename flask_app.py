@@ -10,9 +10,9 @@ app = Flask(__name__)
 
 # Load model
 try:
-    model_data = joblib.load('youtube_asl_model.joblib')
-    model = model_data['model']
-    le = model_data['label_encoder']
+    data = joblib.load('youtube_asl_model.joblib')
+    model = data["model"]
+    le = data["le"]
     print(f"✅ Model loaded: {len(le.classes_)} signs")
 except Exception as e:
     print(f"❌ Error loading model: {e}")
